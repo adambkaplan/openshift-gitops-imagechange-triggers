@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# Copyright Red Hat, Inc.
+# 
+# SPDX-License-Identifier: Apache-2.0
+
+function usage() {
+    cat <<EOF
+Usage: sync [options]
+Synchronize the contents in git with your Kubernetes cluster.
+Your environment must have a properly configured Kubernetes client for this to
+work.
+
+Optional arguments:
+
+  --command='oc': Kubernetes client used to run the synchronization. Defaults
+      to 'oc'.
+  --init: Initialize the resources on your cluster.
+  --init-manifests='init': Directory containing manifests that are applied
+      when your namespace is initialized.
+  --log-level='0': Log level verbosity. Defaluts to 0 (info, warnings, and
+      errors).
+  --patch-manifests='patch': Diretory containing JSON patch manifests that
+      are applied in a normal reconciliation.
+  -h, --help: Print help.
+EOF
+}
+
+function message () {
+  printf "%s\n" "$1"
+}
+
+cmd="oc"
+initManifests="init"
+patchManifests="patch"
+logLevel="0"
+
+while [ "$1" != "" ]; do
+    case $1 in
+        --command )         shift
+                            cmd=$1
+                            shift
+                            ;;
+        --init )            shift
+                            init=true
+                            shift
+                            ;;
+        --init-manifests )  shift
+                            initManifests=$1
+                            shift
+                            ;;
+        --log-level )       shift
+                            logLevel=$1
+                            shift
+                            ;;
+        --patch-manifests ) shift
+                            patchManifests=$1
+                            shift
+                            ;;
+        -h | --help )       shift
+                            usage
+                            exit
+                            ;;
+        * )                 usage
+                            echo "Flag not found: ${1}"
+                            exit 1
+    esac
+done
+
+if [[ ! -z "${init}" ]]; then
+    message "Initializing cluster manifests from ${initManifests}"
+    $cmd apply -f "${initManifests}/"
+    exit $?
+fi
+
+message "Applying patches in ${patchManifests}/"
+for patch in patch/*; do
+    filename=$(basename -- $patch)
+    prefix="${filename%%.*}"
+    echo ${prefix}
+    echo "$(cat ${patch})"
+    $cmd patch -f "${initManifests}/${prefix}.yaml" --type=json --patch="$(cat ${patch})"
+done

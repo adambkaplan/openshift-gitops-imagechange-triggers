@@ -1,0 +1,38 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  annotations:
+    description: Defines how to build the application
+  labels:
+    app: rails-trigger-example
+  name: rails-trigger-example
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: rails-trigger-example:latest
+  postCommit:
+    script: bundle exec rake test
+  source:
+    git:
+      uri: https://github.com/sclorg/rails-ex.git
+    type: Git
+  strategy:
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: ruby:2.5
+        namespace: openshift
+    type: Source
+  triggers:
+  - imageChange:
+      from:
+        kind: ImageStreamTag
+        name: ruby:2.5
+        namespace: openshift
+      paused: true
+    type: ImageChange
+  - type: ConfigChange
+  - github:
+      secret: 8XtYylA3uk7oUALmrPTgSBENwfLBeTlfUkNgMRHu
+    type: GitHub

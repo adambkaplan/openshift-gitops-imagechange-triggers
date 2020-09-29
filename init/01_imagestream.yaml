@@ -1,0 +1,9 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    app: rails-trigger-example
+  name: rails-trigger-example
+spec:
+  lookupPolicy:
+    local: false
